@@ -36,14 +36,14 @@ def ingest_pdf():
         raise SystemExit(0)
     
     # Cada chunk deve ser convertido em embedding.
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    embeddings = OpenAIEmbeddings(model=os.getenv("OPENAI_EMBEDDING_MODEL","text-embedding-3-small"))
 
     # Os vetores devem ser armazenados no banco de dados PostgreSQL com pgVector.
     connection_string = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/rag")
     
     store = PGVector(
         embeddings=embeddings,
-        collection_name="documents",
+        collection_name=os.getenv("PG_VECTOR_COLLECTION_NAME","documents"),
         connection=connection_string,
         use_jsonb=True,
     )
