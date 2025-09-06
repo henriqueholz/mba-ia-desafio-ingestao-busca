@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_postgres import PGVector
 
 load_dotenv()
@@ -15,7 +15,7 @@ def ingest_pdf():
     3. Converte cada chunk em embedding
     4. Armazena os vetores no PostgreSQL com pgVector
     """
-    for k in ("DATABASE_URL","OPENAI_API_KEY"):
+    for k in ("DATABASE_URL","GOOGLE_API_KEY"):
         if not os.getenv(k):
             raise RuntimeError(f"Environment variable {k} is not set")
 
@@ -36,7 +36,9 @@ def ingest_pdf():
         raise SystemExit(0)
     
     # Cada chunk deve ser convertido em embedding.
-    embeddings = OpenAIEmbeddings(model=os.getenv("OPENAI_EMBEDDING_MODEL","text-embedding-3-small"))
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model=os.getenv("GOOGLE_EMBEDDING_MODEL", "models/embedding-001")
+    )
 
     # Os vetores devem ser armazenados no banco de dados PostgreSQL com pgVector.
     connection_string = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/rag")

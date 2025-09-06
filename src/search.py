@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_postgres import PGVector
 from langchain_core.prompts import PromptTemplate
 
@@ -38,20 +38,19 @@ def search_prompt(question=None):
         return "Por favor, forneça uma pergunta."
 
     # Vetorizar a pergunta (feito automaticamente pelo similarity_search)
-    embeddings = OpenAIEmbeddings(model=os.getenv("OPENAI_EMBEDDING_MODEL","text-embedding-3-small"))
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model=os.getenv("GOOGLE_EMBEDDING_MODEL", "models/embedding-001")
+    )
 
     store = PGVector(
         embeddings=embeddings,
         collection_name=os.getenv("PG_VECTOR_COLLECTION_NAME", "documents"),
-        connection=os.getenv("PGVECTOR_URL", "postgresql://postgres:postgres@127.0.0.1:5433/rag"),
+        connection=os.getenv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/rag"),
         use_jsonb=True,
     )
 
     # Buscar os 10 resultados mais relevantes (k=10) no banco vetorial
     results = store.similarity_search_with_score(question, k=10)
-    
-    if not results:
-        return "Não tenho informações necessárias para responder sua pergunta."
 
     # Montar o prompt com o contexto encontrado
     contexto = "\n\n".join([doc.page_content for doc, score in results])
@@ -60,7 +59,10 @@ def search_prompt(question=None):
     formatted_prompt = prompt.format(contexto=contexto, pergunta=question)
 
     # Chamar a LLM
-    llm = ChatOpenAI(model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"))
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash-lite",
+        temperature=0
+    )
     response = llm.invoke(formatted_prompt)
 
     # Retornar a resposta ao usuário
